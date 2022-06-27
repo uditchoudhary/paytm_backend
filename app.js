@@ -3,7 +3,7 @@ const app = express();
 const cors = require("cors");
 const paymentRoute = require("./paymentRoute");
 const bodyParser = require("body-parser");
-const port = 6001;
+const port = process.env.PORT || 6001;
 
 app.use(cors());
 app.get("", (req, res) => {
