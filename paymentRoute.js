@@ -12,19 +12,18 @@ require("dotenv").config();
 router.post("/payment", [parseUrl, parseJson], (req, res) => {
   console.log("inside payment", req.body);
   var paymentDetails = {
-    orderID: String(Math.floor(Math.random() * 5000)),
+    orderID: req.body.orderId,
     amount: req.body.cost,
-    customerId: String(Math.floor(Math.random() * 5000)),
+    customerId: req.body.userId,
     customerEmail: req.body.email,
     customerPhone: req.body.phone,
-    customerRest: req.body.rest_name,
   };
+  console.log("payment ",paymentDetails)
   if (
     !paymentDetails.amount ||
     !paymentDetails.customerId ||
     !paymentDetails.customerEmail ||
-    !paymentDetails.customerPhone ||
-    !paymentDetails.customerRest
+    !paymentDetails.customerPhone
   ) {
     res.status(400).send("Payment failed");
   } else {
@@ -39,7 +38,7 @@ router.post("/payment", [parseUrl, parseJson], (req, res) => {
     params["CUST_ID"] = paymentDetails.customerId;
     params["TXN_AMOUNT"] = paymentDetails.amount;
     /* where is app is hosted (heroku url)*/
-    params["CALLBACK_URL"] = process.env.CALLBACK_HOST + "/callback";
+    params["CALLBACK_URL"] = process.env.CALLBACK_HOST + "callback";
 
     params["EMAIL"] = paymentDetails.customerEmail;
     params["MOBILE_NO"] = paymentDetails.customerPhone;
@@ -173,7 +172,6 @@ router.post("/callback", (req, res) => {
           });
 
           post_res.on("end", function () {
-            console.log("before parsing", response);
             var _results = JSON.parse(response);
             console.log("after parsing", _results);
             let _status = _results.body.resultInfo.resultStatus;
@@ -182,7 +180,7 @@ router.post("/callback", (req, res) => {
             let _bank = _results.body.bankName;
             /* where it will come back after payment*/
             res.redirect(
-              `http://localhost:3000/viewBooking?status=${_status}&orderid=${_orderid}&date=${_date}&bank=${_bank}`
+              `${process.env.WEB_HOST_BOOKINGS}?status=${_status}&orderid=${_orderid}&date=${_date}&bank=${_bank}`
             );
           });
         });
@@ -197,77 +195,5 @@ router.post("/callback", (req, res) => {
   });
 });
 
-// router.post("/callback", (req, res) => {
-//   // Route for verifiying payment
-
-//   var body = "";
-
-//   req.on("data", function (data) {
-//     body += data;
-//   });
-
-//   req.on("end", function () {
-//     var html = "";
-//     var post_data = qs.parse(body);
-
-//     // received params in callback
-//     console.log("Callback Response: ", post_data, "\n");
-
-//     // verify the checksum
-//     var checksumhash = post_data.CHECKSUMHASH;
-//     // delete post_data.CHECKSUMHASH;
-//     var result = PaytmChecksum.verifySignature(
-//       post_data,
-//       process.env.PAYTM_MKEY,
-//       checksumhash
-//     );
-//     console.log("Checksum Result => ", result, "\n");
-
-//     // Send Server-to-Server request to verify Order Status
-//     var params = { MID: process.env.PAYTM_MID, ORDERID: post_data.ORDERID };
-
-//     PaytmChecksum.genchecksum(
-//       params,
-//       process.env.PAYTM_MKEY,
-//       function (err, checksum) {
-//         params.CHECKSUMHASH = checksum;
-//         post_data = "JsonData=" + JSON.stringify(params);
-
-//         var options = {
-//           hostname: "securegw-stage.paytm.in", // for staging
-//           // hostname: 'securegw.paytm.in', // for production
-//           port: 443,
-//           path: "/merchant-status/getTxnStatus",
-//           method: "POST",
-//           headers: {
-//             "Content-Type": "application/x-www-form-urlencoded",
-//             "Content-Length": post_data.length,
-//           },
-//         };
-
-//         // Set up the request
-//         var response = "";
-//         var post_req = https.request(options, function (post_res) {
-//           post_res.on("data", function (chunk) {
-//             response += chunk;
-//           });
-
-//           post_res.on("end", function () {
-//             console.log("S2S Response: ", response, "\n");
-//             var _results = JSON.parse(response);
-//             /* where it will come back after payment*/
-//             res.redirect(
-//               `http://localhost:3000/viewBooking?status=${_results.STATUS}&ORDERID=${_results.ORDERID}&date=${_results.TXNDATE}&bank=${_results.BANKNAME}`
-//             );
-//           });
-//         });
-
-//         // post the data
-//         post_req.write(post_data);
-//         post_req.end();
-//       }
-//     );
-//   });
-// });
 
 module.exports = router;
